@@ -1,0 +1,176 @@
+# parameters.toml — virtual-macrophage v0.1
+#
+# Every numeric parameter the deterministic core uses lives here, with a `source`
+# field citing the literature it comes from. Order-of-magnitude estimates are
+# allowed (and marked) — concrete dose-response calibration is v0.2 work.
+#
+# Convention: a parameter without a source is a bug. If a value is unknown,
+# write `value = "MISSING"` and the loader will raise rather than substitute.
+#
+# Time unit: 1 simulation tick = 1 minute (biological).
+# Concentration unit: ng/mL for protein cytokines/LPS; particles/voxel for
+#   particulate ligands.
+
+# ---------------------------------------------------------------------------
+# Receptors
+# ---------------------------------------------------------------------------
+
+[receptors.tlr4]
+ligand = "lps"
+kd_ng_per_ml = 0.5                    # order-of-magnitude; LPS sensitivity
+hill_n = 1.5                          # cooperative binding via TLR4/MD-2/CD14
+source = "Akashi-Takamura & Miyake (2008) Curr Opin Immunol 20(4):420-425"
+
+[receptors.tlr2]
+ligand = "pam3csk4"                   # diacyl/triacyl lipopeptides
+kd_ng_per_ml = 5.0                    # OOM estimate
+hill_n = 1.2
+source = "Brightbill et al. (1999) Science 285(5428):732-736 (TLR2 lipoprotein recognition)"
+
+[receptors.dectin1]
+ligand = "beta_glucan"
+kd_ng_per_ml = 50.0                   # OOM; Dectin-1 binds zymosan particles
+hill_n = 2.0
+source = "Brown (2006) Nat Rev Immunol 6(1):33-43"
+
+[receptors.cd36]
+ligand = "oxidized_ldl"
+kd_ng_per_ml = 100.0                  # OOM
+hill_n = 1.0
+source = "Silverstein & Febbraio (2009) Sci Signal 2(72):re3"
+
+[receptors.fcgr]
+ligand = "igg_opsonized_particle"     # virtual particle flag, not a concentration
+kd_particles = 1.0                    # threshold of nearby opsonized particles
+hill_n = 2.0
+source = "Underhill & Goodridge (2012) Nat Rev Immunol 12(7):492-502"
+
+[receptors.ccr2]
+ligand = "ccl2"
+kd_ng_per_ml = 1.0                    # OOM; CCL2 chemotaxis sensitive
+hill_n = 1.0
+source = "Deshmane et al. (2009) J Interferon Cytokine Res 29(6):313-326"
+
+[receptors.ifngr]
+ligand = "ifn_gamma"
+kd_ng_per_ml = 0.1                    # high-affinity
+hill_n = 1.5
+source = "Schroder et al. (2004) J Leukoc Biol 75(2):163-189"
+
+[receptors.il4r]
+ligand = "il4"
+kd_ng_per_ml = 0.5
+hill_n = 1.5
+source = "Junttila (2018) Front Immunol 9:888 (IL-4 receptor signaling)"
+
+[receptors.il10r]
+ligand = "il10"
+kd_ng_per_ml = 0.5
+hill_n = 1.5
+source = "Saraiva & O'Garra (2010) Nat Rev Immunol 10(3):170-181"
+
+# ---------------------------------------------------------------------------
+# Transcription factors — activation rate from receptor signal,
+# decay back toward baseline.
+# Activation is a Hill function of the upstream receptor's bound_fraction.
+# ---------------------------------------------------------------------------
+
+[transcription.nfkb]
+upstream = ["tlr4", "tlr2", "dectin1"]
+activation_max = 1.0
+decay_per_tick = 0.05                  # ~20 min half-life
+source = "O'Neill, Golenbock & Bowie (2016) Nat Rev Immunol 13(6):453-460"
+
+[transcription.irf3]
+upstream = ["tlr4"]                    # via TRIF
+activation_max = 0.7
+decay_per_tick = 0.04
+source = "O'Neill, Golenbock & Bowie (2016) (TRIF arm of TLR4)"
+
+[transcription.stat1]
+upstream = ["ifngr"]
+activation_max = 1.0
+decay_per_tick = 0.03
+source = "Murray (2007) Curr Opin Pharmacol 7(4):425-431"
+
+[transcription.stat6]
+upstream = ["il4r"]
+activation_max = 1.0
+decay_per_tick = 0.03
+source = "Murray (2007) (STAT6 in IL-4 → M2a)"
+
+[transcription.stat3]
+upstream = ["il10r"]
+activation_max = 0.8
+decay_per_tick = 0.04
+source = "Saraiva & O'Garra (2010) (IL-10 → STAT3)"
+
+# ---------------------------------------------------------------------------
+# Polarization — continuous score in [-1, +1]
+#  +1 = M1, -1 = M2, 0 = M0
+#  d/dt(score) = sum_i(weight_i * TF_i_active) - relax * score
+# ---------------------------------------------------------------------------
+
+[polarization]
+weight_nfkb = 0.30
+weight_irf3 = 0.15
+weight_stat1 = 0.30                   # IFN-γ → M1
+weight_stat6 = -0.50                  # IL-4 → M2 (drives score negative)
+weight_stat3 = -0.30                  # IL-10 → M2 (M2c)
+relax_per_tick = 0.02                 # slow drift back to M0 absent stimulation
+source = "Murray et al. (2014) Immunity 41(1):14-20 (continuous spectrum)"
+
+# ---------------------------------------------------------------------------
+# Metabolism — binary mode flag follows polarization
+# ---------------------------------------------------------------------------
+
+[metabolism]
+glycolysis_threshold = 0.3            # M1 score above which → glycolysis
+oxphos_threshold = -0.3                # M2 score below which → OXPHOS
+hysteresis = 0.1                       # avoid chattering at the switch
+source = "O'Neill & Pearce (2016) J Exp Med 213(1):15-23"
+
+# ---------------------------------------------------------------------------
+# Effector outputs
+# ---------------------------------------------------------------------------
+
+[effectors.cytokines]
+# Per-tick secretion rate (ng/mL into local environment) at full-strength polarization.
+# Real human MDM rates are highly variable; these are OOM defaults for v0.1.
+tnf_alpha_m1_max = 0.50
+il6_m1_max = 0.40
+il1b_m1_max = 0.30
+il10_m2_max = 0.30
+tgfb_m2_max = 0.20
+source = "Arango Duque & Descoteaux (2014) Front Immunol 5:491 (cytokine profiles)"
+
+[effectors.ros]
+burst_per_phagocytosis = 1.0          # arbitrary units; magnitude only matters relative
+duration_ticks = 5                     # ROS burst lasts ~5 minutes post-engulfment
+source = "Forman & Torres (2002) Am J Respir Crit Care Med 166:S4-S8"
+
+[effectors.phagocytosis]
+rate_per_particle_per_tick = 0.4      # P(engulf | particle within reach + receptor engaged)
+proximity_um = 5.0                     # cell can reach particles within 5 µm
+source = "Underhill & Goodridge (2012) Nat Rev Immunol 12(7):492-502"
+
+# ---------------------------------------------------------------------------
+# Motility — biased random walk
+# ---------------------------------------------------------------------------
+
+[motility]
+random_speed_um_per_min = 1.0          # baseline speed
+chemotactic_coefficient = 5.0          # χ in drift = χ * ∇log(L)
+persistence_correlation = 0.7          # turning angle correlation tick-to-tick
+source = "Lauffenburger & Linderman (1993) (BRW chemotaxis)"
+
+# ---------------------------------------------------------------------------
+# Morphology — discrete states + transition thresholds
+# ---------------------------------------------------------------------------
+
+[morphology]
+# states: round | spread | cup
+# round → spread when polarization|score| > spread_threshold
+# spread → cup when an opsonized/engulfable particle is in proximity
+spread_threshold = 0.2
+source = "Adams & Hamilton (1984) Annu Rev Immunol 2:283-318"

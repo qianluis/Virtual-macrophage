@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "virtual-macrophage"
+version = "0.1.0"
+description = "A virtual human macrophage as an agent — single-cell biology rules + perceive/decide/act loop"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "virtual-macrophage contributors" }]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "tomli; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "matplotlib>=3.6"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
