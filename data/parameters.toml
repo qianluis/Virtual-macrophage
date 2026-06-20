@@ -160,9 +160,14 @@ source = "Underhill & Goodridge (2012) Nat Rev Immunol 12(7):492-502"
 
 [motility]
 random_speed_um_per_min = 1.0          # baseline speed
-chemotactic_coefficient = 5.0          # χ in drift = χ * ∇log(L)
+# χ in receptor-limited Keller-Segel: drift = χ * ∇L * Kd / (Kd + L)²
+# Order-of-magnitude calibration target: with ∇L ~0.05 ng/mL/µm and L ~Kd,
+# drift ~χ/(4*Kd) µm/min should be comparable to or above random_speed for
+# a clear bias. χ=200 µm·mL/(ng·min) puts drift ~0.5-2 µm/min in our default
+# gradient. v0.2 will calibrate against published transwell migration data.
+chemotactic_coefficient = 200.0
 persistence_correlation = 0.7          # turning angle correlation tick-to-tick
-source = "Lauffenburger & Linderman (1993) (BRW chemotaxis)"
+source = "Lauffenburger & Linderman (1993) (Keller-Segel BRW chemotaxis); χ OOM"
 
 # ---------------------------------------------------------------------------
 # Morphology — discrete states + transition thresholds

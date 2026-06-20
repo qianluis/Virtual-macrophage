@@ -39,10 +39,16 @@ def step(
     persist = params.get("motility", "persistence_correlation")
     kd_ccl2 = params.get("receptors", "ccr2", "kd_ng_per_ml")
 
-    # chemotactic drift: χ * ∇log(L) / (1 + L/Kd)
-    # At low L, response is roughly linear in ∇L; at saturation, it tapers.
-    if ccl2_local > 0:
-        drift = chi * ccl2_gradient / max(ccl2_local, 1e-9) / (1.0 + ccl2_local / kd_ccl2)
+    # Chemotactic drift, receptor-limited form (Keller-Segel-style):
+    #   drift = χ * ∇L * Kd / (Kd + L)²
+    # This gives:
+    #   - linear in ∇L when L << Kd (sensitive at low concentration)
+    #   - saturating at high L (receptors are occupied; gradient sensing dulls)
+    # The factor `Kd` in the numerator gives drift units of µm/min when χ has
+    # units of µm²/(ng·min) and ∇L has ng/mL/µm.
+    if ccl2_local > 0 or np.linalg.norm(ccl2_gradient) > 0:
+        denom = (kd_ccl2 + ccl2_local) ** 2
+        drift = chi * ccl2_gradient * kd_ccl2 / denom
     else:
         drift = np.zeros(3)
 
