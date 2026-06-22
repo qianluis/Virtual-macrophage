@@ -1,0 +1,31 @@
+# GitHub Actions template for virtual-macrophage.
+#
+# The initial repository push intentionally did not include this file under
+# `.github/workflows/tests.yml` because the available Personal Access Token lacks
+# GitHub's `workflow` scope. To enable CI later:
+#
+# 1. Use a token with `workflow` permission (classic PAT: `workflow` scope, or
+#    fine-grained token with Actions/Workflows permission where available).
+# 2. Copy this file to `.github/workflows/tests.yml`.
+# 3. Commit and push.
+
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install package + test deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+      - name: Run tests
+        run: pytest -q
