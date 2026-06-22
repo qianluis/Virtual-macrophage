@@ -38,17 +38,21 @@ A single-cell perceive/decide/act loop with **four golden-standard experiments**
 2. `il4_response.py` — IL-4 (20 ng/mL) drives M2a polarization, STAT6 activation, OXPHOS, IL-10/TGF-β secretion.
 3. `phagocytosis.py` — opsonized particles in proximity → phagocytosis events + ROS burst.
 4. `chemotaxis.py` — CCL2 gradient → biased migration toward source, with directional persistence.
+5. `dose_response.py` — LPS dose-response curve, verifying sigmoidal TLR4/NF-κB behavior and EC50 plausibility.
 
-Each has a `tests/test_*.py` that runs the experiment headlessly and asserts the expected literature behavior.
+Each has a `tests/test_*.py` that runs the experiment headlessly and asserts the expected literature behavior. See [`docs/v0.1-results.md`](docs/v0.1-results.md) for the current numbers and generated figures.
 
 ## Install
 
 ```bash
 git clone https://github.com/<you>/virtual-macrophage.git
 cd virtual-macrophage
-pip install -e .
+pip install -e '.[dev]'
 pytest                                  # all tests green
-python experiments/lps_response.py      # the showcase
+python experiments/lps_response.py      # showcase: LPS -> M1
+python experiments/il4_response.py      # IL-4 -> M2a + autocrine IL-10/STAT3
+python experiments/dose_response.py     # LPS dose-response
+PYTHONPATH=src python -m macrophage.viz # optional figures
 ```
 
 Python 3.10+. Core deps: `numpy`. Optional: `matplotlib` for the experiment plots, an LLM client for the advisor.
